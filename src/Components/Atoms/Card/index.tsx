@@ -10,7 +10,7 @@ export const MovieCard = memo((props: CardProps) => {
   const { title, url, imageUrl, description } = props;
   return (
     <Card>
-      <a href={url} target="_blank">
+      <a href={url} target="_blank" rel="noopener noreferrer">
         <CardMedia
           component="img"
           image={
