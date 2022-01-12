@@ -1,51 +1,53 @@
-import { useCallback } from "react";
-import { Container } from "@material-ui/core";
-import { useTranslation } from "next-i18next";
-import { useDispatch, useSelector } from "react-redux";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import axios from "axios";
+import { Container, Grid } from "@material-ui/core";
 
-import { ButtonExample } from "@Atoms";
+import type { NextPage } from "next";
+import { useEffect, useState } from "react";
+import { MovieCard } from "../src/Components/Atoms/Card/index";
+import { IMovie } from "../src/tmdb/interfaces";
+import { SearchBar } from "../src/Components/Atoms/SearchBar/index";
+import { imageUrl, movieUrl, moviesUrl, searchUrl } from "../src/tmdb/constant";
 
-import { counterSlice } from "@ReduxModules/Counter";
-import { useGetUsersQuery } from "@ReduxModules/User";
+const Home: NextPage = () => {
+  const [movies, setMovies] = useState<IMovie[]>([]);
+  const [query, setQuery] = useState("");
 
-const Home = () => {
-  const { t } = useTranslation();
-  const dispatch = useDispatch();
-  const counter = useSelector((state: any) => state.counter?.countNumber);
-  const { isLoading, data } = useGetUsersQuery({});
+  useEffect(() => {
+    const url =
+      query.length === 0
+        ? `${moviesUrl}?api_key=${process.env.NEXT_PUBLIC_API_KEY}`
+        : `${searchUrl}?api_key=${process.env.NEXT_PUBLIC_API_KEY}&query=${query}`;
 
-  const onWelcome = useCallback(() => {
-    dispatch(counterSlice.actions.increment());
-  }, [dispatch]);
+    const delayDebounceFn = setTimeout(() => {
+      axios.get<Record<"results", IMovie[]>>(url).then(response => {
+        console.log(response);
+        setMovies(response.data.results);
+      });
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query]);
 
   return (
     <Container>
-      <h1>HZN Frontend Structure</h1>
-      <h3>
-        {t("hello")} {t("world")} {t("error")} : {counter}
-      </h3>
-      <ButtonExample
-        testID="button-example"
-        onClick={onWelcome}
-        gradientColor="blue"
-      >
-        Counter
-      </ButtonExample>
-      <h3>Users RTK Query</h3>
-      {isLoading ? (
-        <div>Loading</div>
-      ) : (
-        data?.data?.map(row => <div key={row.email}>{row.email}</div>)
-      )}
+      <SearchBar handleChange={e => setQuery(e.currentTarget.value)} />
+      <Grid container spacing={2}>
+        {movies.map(movie => {
+          return (
+            <Grid item xs={4}>
+              <MovieCard
+                key={movie.id}
+                title={movie.title}
+                url={`${movieUrl}/${movie.id}`}
+                imageUrl={`${imageUrl}${movie.poster_path}`}
+                description={movie.overview}
+              />
+            </Grid>
+          );
+        })}
+      </Grid>
     </Container>
   );
 };
-
-export const getStaticProps = async ({ locale }: any) => ({
-  props: {
-    ...(await serverSideTranslations(locale, ["common"])),
-  },
-});
 
 export default Home;
